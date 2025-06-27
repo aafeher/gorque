@@ -1,0 +1,92 @@
+
+x-env-influx: &env-influx
+  INFLUX_URL: ${INFLUX_URL}
+  INFLUX_TOKEN: ${INFLUX_TOKEN}
+  INFLUX_ORG: ${INFLUX_ORG}
+  INFLUX_BUCKET: ${INFLUX_BUCKET}
+
+networks:
+  gorque:
+    name: gorque
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: br-gorque
+    enable_ipv6: false
+    ipam:
+      driver: default
+      config:
+        - subnet: ${IPV4_NETWORK:-172.28.42}.0/24
+
+services:
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile.dev
+    image: gorque-backend
+    container_name: gorque-backend
+    depends_on:
+      - influxdb
+    environment:
+      <<:
+        - *env-influx
+      ENV: ${ENV}
+      FRONTEND_URL: ${FRONTEND_URL}
+      LOG_LEVEL: ${LOG_LEVEL}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      DATABASE_SQLITE_URL: ${DATABASE_SQLITE_URL}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+    networks:
+      gorque:
+        ipv4_address: ${IPV4_NETWORK:-172.28.42}.21
+    ports:
+      - "8080:8080"
+      - "40000:40000"
+    restart: unless-stopped
+    volumes:
+      - ../backend:/go/src/gorque/backend
+      - ./volumes/sqlite/:/gorque/sqlite/
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile.dev
+    image: gorque-frontend
+    container_name: gorque-frontend
+    depends_on:
+      - backend
+    environment:
+      - VITE_API_URL=${VITE_API_URL}
+      - VITE_APP_TITLE=${VITE_APP_TITLE}
+      - VITE_DEBUG=${VITE_DEBUG}
+    networks:
+      gorque:
+        ipv4_address: ${IPV4_NETWORK:-172.28.42}.22
+        aliases:
+          - gorque.localhost
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    volumes:
+      - ../frontend/:/gorque-frontend/
+      - /gorque-frontend/node_modules
+
+  influxdb:
+    image: influxdb:2.7
+    container_name: gorque-influxdb
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=gorque
+      - DOCKER_INFLUXDB_INIT_PASSWORD=gorquepass
+      - DOCKER_INFLUXDB_INIT_ORG=${INFLUX_ORG}
+      - DOCKER_INFLUXDB_INIT_BUCKET=${INFLUX_BUCKET}
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${INFLUX_TOKEN}
+    networks:
+      gorque:
+        ipv4_address: ${IPV4_NETWORK:-172.28.42}.81
+        aliases:
+          - influxdb
+    ports:
+      - "8086:8086"
+    restart: unless-stopped
+    volumes:
+      - ./volumes/influxdb:/var/lib/influxdb2

@@ -1,0 +1,51 @@
+FROM golang:1.24.4-bookworm AS builder
+
+ARG TARGETOS
+ARG TARGETARCH
+
+ENV GO111MODULE=on \
+    CGO_ENABLED=1 \
+    GOOS=$TARGETOS \
+    GOARCH=$TARGETARCH
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    libc6-dev \
+    libsqlite3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /go/src/gorque/backend
+
+COPY ./go.mod ./
+COPY ./go.sum ./
+RUN go mod download
+COPY . .
+
+RUN go build -a -ldflags="-w -s" -o gorque-backend .
+
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    tzdata \
+    libsqlite3-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN groupadd --gid 1001 gorque && \
+    useradd --uid 1001 --gid gorque --shell /bin/bash --create-home gorque
+
+RUN mkdir -p /gorque && \
+    chown -R gorque:gorque /gorque
+
+WORKDIR /gorque
+
+COPY --from=builder --chown=gorque:gorque /go/src/gorque/backend/gorque-backend .
+
+USER gorque
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+CMD ["./gorque-backend"]

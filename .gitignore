@@ -1,0 +1,11 @@
+backend/.env
+backend/.idea
+
+build/
+
+docker/.env
+docker/volumes/*
+!docker/volumes/.gitkeep
+
+frontend/.idea
+frontend/node_modules
