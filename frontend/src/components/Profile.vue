@@ -56,7 +56,7 @@
     error.value = null;
 
     try {
-      const res = await fetch(`${baseURL}/profile/${profile.value.id}/name`, {
+      const res = await fetch(`${baseURL}/profile/name`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -97,7 +97,7 @@
     error.value = null;
 
     try {
-      const res = await fetch(`${baseURL}/profile/${profile.value.id}/password`, {
+      const res = await fetch(`${baseURL}/profile/password`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
