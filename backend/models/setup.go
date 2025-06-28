@@ -7,6 +7,7 @@ import (
 	"gorm.io/gorm"
 	"log"
 	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -25,6 +26,14 @@ func ConnectDatabase() {
 		log.Fatal("DATABASE_SQLITE_URL environment variable is not set")
 	}
 
+	if err := ensureDatabaseDirectoryExists(pathSQLite); err != nil {
+		log.Fatalf("Failed to create database directory: %v", err)
+	}
+
+	if err := ensureDatabaseFileExists(pathSQLite); err != nil {
+		log.Fatalf("Failed to create database file: %v", err)
+	}
+
 	DBSQLite, err = gorm.Open(sqlite.Open(pathSQLite), &gorm.Config{})
 	if err != nil {
 		log.Fatal(err)
@@ -34,9 +43,40 @@ func ConnectDatabase() {
 		log.Fatalf("Failed to auto-migrate models: %v", err)
 	}
 
+	if err := createTriggers(); err != nil {
+		log.Fatalf("Failed to create triggers: %v", err)
+	}
+
 	initInfluxDB()
 
 	log.Println("Database connection initialized successfully")
+}
+
+func ensureDatabaseDirectoryExists(dbPath string) error {
+	dir := filepath.Dir(dbPath)
+	if dir == "." || dir == "" {
+		return nil
+	}
+
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		log.Printf("Creating database directory: %s", dir)
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func ensureDatabaseFileExists(dbPath string) error {
+	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
+		log.Printf("Creating database file: %s", dbPath)
+		file, err := os.Create(dbPath)
+		if err != nil {
+			return err
+		}
+		file.Close()
+	}
+	return nil
 }
 
 // autoMigrateModels performs auto-migration for all models
@@ -63,7 +103,7 @@ func autoMigrateModels() error {
 // Returns an error if the trigger creation fails.
 func createTriggers() error {
 	err := DBSQLite.Exec(`
-    CREATE TRIGGER update_device_last_seen 
+    CREATE TRIGGER IF NOT EXISTS update_device_last_seen 
 	    AFTER INSERT ON sessions 
     	FOR EACH ROW
 	BEGIN
@@ -78,7 +118,7 @@ func createTriggers() error {
 	}
 
 	err = DBSQLite.Exec(`
-    CREATE TRIGGER update_session_end_time
+    CREATE TRIGGER IF NOT EXISTS update_session_end_time
 	    AFTER UPDATE OF is_active ON sessions
 	    FOR EACH ROW
 	    WHEN NEW.is_active = 0 AND OLD.is_active = 1
