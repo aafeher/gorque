@@ -15,7 +15,7 @@ type Session struct {
 	SessionID string    `gorm:"column:session_id;uniqueIndex:idx_sessions_unique_session_id;not null"`
 	DeviceID  string    `gorm:"column:device_id;index:idx_sessions_device_id;not null"`
 	UserID    uint      `gorm:"column:user_id;index:idx_session_user_id;not null"`
-	Version   int       `gorm:"column:v"`
+	Version   int       `gorm:"column:version"`
 	CreatedAt time.Time `gorm:"column:created_at;default:CURRENT_TIMESTAMP"`
 	UpdatedAt time.Time `gorm:"column:updated_at;default:CURRENT_TIMESTAMP"`
 

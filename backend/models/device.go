@@ -10,7 +10,7 @@ type Device struct {
 	ID        uint      `gorm:"primarykey;autoIncrement"`
 	DeviceID  string    `gorm:"column:device_id;uniqueIndex:idx_device_unique_device_id;not null"`
 	UserID    uint      `gorm:"column:user_id;index:idx_device_user_id;not null"`
-	Version   int       `gorm:"column:v"`
+	Version   int       `gorm:"column:version"`
 	CreatedAt time.Time `gorm:"column:created_at;default:CURRENT_TIMESTAMP"`
 	UpdatedAt time.Time `gorm:"column:updated_at;default:CURRENT_TIMESTAMP"`
 
