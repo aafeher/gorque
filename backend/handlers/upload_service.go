@@ -50,7 +50,7 @@ func (s *UploadService) ProcessUpload(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"status": "success"})
+	c.String(http.StatusOK, "OK!")
 }
 
 // parseRequest parses and validates the incoming request
