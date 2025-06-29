@@ -19,8 +19,6 @@ func main() {
 
 	r := gin.Default()
 
-	r.Use(middlewares.CORS())
-
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"status": "ok",
@@ -28,11 +26,13 @@ func main() {
 	})
 
 	auth := r.Group("/api/auth")
+	auth.Use(middlewares.CORS())
 	auth.Use(middlewares.RateLimitMiddleware(5, 5*time.Minute, 5*time.Minute))
 	auth.POST("/register", handlers.Register)
 	auth.POST("/login", handlers.Login)
 
 	api := r.Group("/api")
+	api.Use(middlewares.CORS())
 	api.Use(middlewares.JWTAuthMiddleware)
 	api.GET("/profile", handlers.GetProfile)
 	api.PUT("/profile/name", handlers.UpdateProfileName)
