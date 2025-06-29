@@ -6,6 +6,7 @@ import (
 	"github.com/aafeher/gorque/models"
 	"github.com/gin-gonic/gin"
 	"log"
+	"net/http"
 	"os"
 	"time"
 )
@@ -19,6 +20,12 @@ func main() {
 	r := gin.Default()
 
 	r.Use(middlewares.CORS())
+
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"status": "ok",
+		})
+	})
 
 	auth := r.Group("/api/auth")
 	auth.Use(middlewares.RateLimitMiddleware(5, 5*time.Minute, 5*time.Minute))
